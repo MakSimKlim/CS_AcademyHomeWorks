@@ -1,150 +1,211 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-namespace ДЗ__33_до_20._11._23_CS_Интерфейсы
-{
+using static System.Console;
 
-    // Интерфейс для частей дома
-    interface IPart
+// Интерфейс, определяющий метод для построения части дома
+interface IPart
 {
-    string GetName();
+    void Build();
 }
 
-// Интерфейс для рабочих
-interface IWorker
+// Классы, представляющие различные части дома и реализующие интерфейс IPart
+class House : IPart
 {
-    void Work(House house);
-}
-
-// Классы частей дома
-class Basement : IPart
-{
-    public string GetName()
+    public void Build()
     {
-        return "Basement";
+        WriteLine("Дом построен!");
     }
 }
 
-class Wall : IPart
+class Basement : IPart
 {
-    public string GetName()
+    public void Build()
     {
-        return "Wall";
+        WriteLine("Фундамент построен!");
+    }
+}
+
+class Walls : IPart
+{
+    public void Build()
+    {
+        WriteLine("Стены построены!");
     }
 }
 
 class Door : IPart
 {
-    public string GetName()
+    public void Build()
     {
-        return "Door";
+        WriteLine("Дверь построена!");
     }
 }
 
 class Window : IPart
 {
-    public string GetName()
+    public void Build()
     {
-        return "Window";
+        WriteLine("Окно построено!");
     }
 }
 
 class Roof : IPart
 {
-    public string GetName()
+    public void Build()
     {
-        return "Roof";
+        WriteLine("Крыша построена!");
     }
 }
 
-// Класс дома
-class House
+// Интерфейс для работника (строителя или бригадира)
+interface IWorker
 {
-    private List<IPart> parts = new List<IPart>();
+    event EventHandler WorkEnded;// Событие завершения работы
+    bool IsWorking { get; }      // Проверка, работает ли работник
+    string Work(IPart part);     // Метод выполнения работы
+}
 
-    public void AddPart(IPart part)
+// Реализация строителя
+class Worker : IWorker
+{
+    public event EventHandler WorkEnded;
+    public bool IsWorking { get; private set; }
+
+    public string Work(IPart part)
     {
-        parts.Add(part);
+        if (part != null)
+        {
+            part.Build();
+            IsWorking = true;
+            //OnWorkEnded();
+            return "Работа выполнена.";
+        }
+        else
+        {
+            return "Работа не может быть выполнена. Отсутствует часть дома для строительства.";
+        }
     }
 
-    public void Show()
+    //protected virtual void OnWorkEnded() => WorkEnded?.Invoke(this, EventArgs.Empty);
+}
+
+class TeamLeader : IWorker
+{
+    private List<IWorker> workers;
+
+    public TeamLeader(List<IWorker> workers)
     {
-        Console.WriteLine("House is built with the following parts:");
-        foreach (var part in parts)
+        this.workers = workers;
+        foreach (var worker in workers)
         {
-            Console.WriteLine(part.GetName());
+            worker.WorkEnded += (sender, e) => CheckTeamCompletion();
+        }
+    }
+
+    private void CheckTeamCompletion()
+    {
+        foreach (var worker in workers)
+        {
+            if (worker.IsWorking)
+                return;
+        }
+        //OnWorkEnded();
+    }
+
+    public event EventHandler WorkEnded;
+
+    public bool IsWorking
+    {
+        get
+        {
+            foreach (var worker in workers)
+            {
+                if (worker.IsWorking)
+                    return true;
+            }
+            return false;
+        }
+    }
+
+    public string Work(IPart part)
+    {
+        if (IsWorking)
+        {
+            return "Бригадир не строит, а формирует отчёт о выполненной работе.";
+        }
+        else
+        {
+            return "Работа не может быть выполнена. Вся работа уже завершена.";
         }
     }
 }
 
-// Класс строителя
-class Worker : IWorker
-{
-    public void Work(House house)
-    {
-        house.AddPart(new Basement());
-        house.AddPart(new Wall());
-        house.AddPart(new Wall());
-        house.AddPart(new Wall());
-        house.AddPart(new Wall());
-        house.AddPart(new Door());
-        house.AddPart(new Window());
-        house.AddPart(new Window());
-        house.AddPart(new Roof());
-    }
-}
-
-// Класс бригадира
-class TeamLeader : IWorker
-{
-    public void Work(House house)
-    {
-        Console.WriteLine("Team Leader checks the progress:");
-        house.Show();
-    }
-}
-
-// Класс бригады строителей
 class Team
 {
-    private List<IWorker> workers = new List<IWorker>();
+    private List<IWorker> workers;
 
-    public void AddWorker(IWorker worker)
-    {
-        workers.Add(worker);
-    }
+    public Team(List<IWorker> workers) => this.workers = workers;
 
-    public void StartBuilding(House house)
+    public void StartBuilding()
     {
-        Console.WriteLine("Construction of the house begins:");
+        foreach (var worker in workers)
+        {
+            worker.WorkEnded += (sender, e) => CheckTeamCompletion();
+        }
 
         foreach (var worker in workers)
         {
-            worker.Work(house);
+            worker.Work(new Basement());
         }
+        foreach (var worker in workers)
+        {
+            worker.Work(new Walls());
+        }
+        foreach (var worker in workers)
+        {
+            worker.Work(new Door());
+        }
+        foreach (var worker in workers)
+        {
+            worker.Work(new Window());
+        }
+        foreach (var worker in workers)
+        {
+            worker.Work(new Roof());
+        }
+        foreach (var worker in workers)
+        {
+            worker.Work(new House());
+        }
+    }
 
-        Console.WriteLine("Construction of the house is complete.");
-        house.Show();
+    private void CheckTeamCompletion()
+    {
+        foreach (var worker in workers)
+        {
+            if (worker.IsWorking)
+                return;
+        }
+        WriteLine("Бригада завершила работу!");
     }
 }
 
-// Пример использования
 class Program
 {
-        static void Main(string[] args)
-        {
-        House house = new House();
-        Team team = new Team();
+    static void Main(string[] args)
+    {
+        Worker worker1 = new Worker();
+        Worker worker2 = new Worker();
+        Worker worker3 = new Worker();
+        Worker worker4 = new Worker();
+        //TeamLeader teamLeader = new TeamLeader(new List<IWorker> { worker1, worker2, worker3, worker4 });
 
-        // Добавляем строителей в бригаду
-        team.AddWorker(new Worker());
-        team.AddWorker(new Worker());
-        team.AddWorker(new Worker());
+        ////teamLeader.WorkEnded += (sender, e) => WriteLine("Бригада завершила работу!");
 
-        // Добавляем бригадира в бригаду
-        team.AddWorker(new TeamLeader());
+        //Team team = new Team(new List<IWorker> { worker1, worker2, worker3, worker4, teamLeader });
 
-        // Начинаем строительство
-        team.StartBuilding(house);
+        //team.StartBuilding();
+
+        //ReadLine();
     }
-}
 }
